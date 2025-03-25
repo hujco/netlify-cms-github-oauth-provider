@@ -28,11 +28,11 @@ function indexMiddleware(req, res) {
     </a>`);
 }
 
-app.use('/', indexMiddleware);
-
-app.use('/auth', authMiddleWareInit(oauth2));
-app.use('/callback', callbackMiddleWareInit(oauth2, oauthProvider));
-app.use('/success', (req, res) => {
+// Pridanie všetkých route handlerov
+app.get('/', indexMiddleware);
+app.get('/auth', authMiddleWareInit(oauth2));
+app.get('/callback', callbackMiddleWareInit(oauth2, oauthProvider));
+app.get('/success', (req, res) => {
   res.send('');
 });
 
