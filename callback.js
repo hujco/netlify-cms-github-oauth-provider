@@ -5,29 +5,33 @@ module.exports = function(oauth2, provider) {
 
   router.get('/', async (req, res) => {
     const code = req.query.code;
+    console.log("OAuth Code od GitHubu: ", code);
+
     if (!code) {
-      console.error('No code provided.');
-      return res.status(400).json('No code provided');
+      console.error("Chýbajúci OAuth kód v URL");
+      return res.status(400).json("Chýbajúci OAuth kód");
     }
 
     const redirect_uri = process.env.REDIRECT_URI;
-    if (!redirect_uri) {
-      console.error('Environment REDIRECT_URI is not set.');
-      return res.status(500).json('Server misconfiguration');
+    const origin = process.env.ORIGIN;
+
+    if (!redirect_uri || !origin) {
+      console.error("Chýbajúca konfigurácia ENV premenných");
+      return res.status(500).json('Nesprávna konfigurácia servera');
     }
 
-    const options = { code, redirect_uri };
-
     try {
-      const result = await oauth2.getToken(options);
+      const result = await oauth2.getToken({code, redirect_uri});
       const token = result.token.access_token;
 
-      const frontend_success_page = `${process.env.ORIGIN}/success`;
-      res.redirect(`${frontend_success_page}#access_token=${token}&provider=${provider}`);
-      
-    } catch (error) {
-      console.error('Access Token Error:', error.message);
-      res.status(500).json('Authentication failed');
+      console.log("Token od GitHubu: ", token);
+
+      // presný redirect s hash "#" na /success stránku
+      res.redirect(`${origin}/success#access_token=${token}&provider=${provider}`);
+
+    } catch (e) {
+      console.error("Error v OAuth (chyba pri získavaní tokenu):", e);
+      res.status(500).json('Authentifikácia zlyhala.');
     }
   });
 
