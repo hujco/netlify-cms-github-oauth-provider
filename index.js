@@ -32,3 +32,13 @@ module.exports = {
   success: (req, res) => { res.send('') },
   index: indexMiddleWare
 }
+
+const express = require('express');
+const app = express();
+
+app.use('/', indexMiddleware);
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`✅ Netlify CMS OAuth proxy running on port ${port}`);
+});
