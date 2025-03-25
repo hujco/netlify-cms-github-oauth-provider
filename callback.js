@@ -16,15 +16,31 @@ module.exports = function(oauth2, provider) {
       return res.status(500).json('Server misconfiguration');
     }
 
-    const options = {
-      code,
-      redirect_uri,
-    };
+    const options = { code, redirect_uri };
 
     try {
       const result = await oauth2.getToken(options);
       const token = result.token.access_token;
-      res.redirect(`/success#access_token=${token}&provider=${provider}`);
+
+      // ✅ SPRÁVNE RIEŠENIE: posielame token do CMS a zatvárame okno
+      res.send(`
+        <html><body>
+          <script>
+            (function() {
+              function receiveMessage(e) {
+                window.opener.postMessage(
+                  'authorization:${provider}:success:${token}',
+                  e.origin
+                );
+                window.removeEventListener("message", receiveMessage, false);
+                window.close(); // 🔥 dôležité! zatvor okno!
+              }
+              window.addEventListener("message", receiveMessage, false);
+              window.opener.postMessage("authorizing:${provider}", "*");
+            })();
+          </script>
+        </body></html>`);
+
     } catch (error) {
       console.error('Access Token Error:', error.message);
       res.status(500).json('Authentication failed');
