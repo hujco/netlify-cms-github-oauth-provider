@@ -22,25 +22,9 @@ module.exports = function(oauth2, provider) {
       const result = await oauth2.getToken(options);
       const token = result.token.access_token;
 
-      // ✅ SPRÁVNE RIEŠENIE: posielame token do CMS a zatvárame okno
-      res.send(`
-        <html><body>
-          <script>
-            (function() {
-              function receiveMessage(e) {
-                window.opener.postMessage(
-                  'authorization:${provider}:success:${token}',
-                  e.origin
-                );
-                window.removeEventListener("message", receiveMessage, false);
-                window.close(); // 🔥 dôležité! zatvor okno!
-              }
-              window.addEventListener("message", receiveMessage, false);
-              window.opener.postMessage("authorizing:${provider}", "*");
-            })();
-          </script>
-        </body></html>`);
-
+      const frontend_success_page = `${process.env.ORIGIN}/success`;
+      res.redirect(`${frontend_success_page}#access_token=${token}&provider=${provider}`);
+      
     } catch (error) {
       console.error('Access Token Error:', error.message);
       res.status(500).json('Authentication failed');
