@@ -1,39 +1,36 @@
-const express = require('express');
+const generateScript = require('./login_script.js')
 
-module.exports = function(oauth2, provider) {
-  const router = express.Router();
-
-  router.get('/', async (req, res) => {
-    const code = req.query.code;
-    console.log("OAuth Code od GitHubu: ", code);
-
-    if (!code) {
-      console.error("Chýbajúci OAuth kód v URL");
-      return res.status(400).json("Chýbajúci OAuth kód");
+module.exports = (oauth2, oauthProvider) => {
+  function callbackMiddleWare (req, res, next) {
+    const code = req.query.code
+    var options = {
+      code: code
     }
 
-    const redirect_uri = process.env.REDIRECT_URI;
-    const origin = process.env.ORIGIN;
-
-    if (!redirect_uri || !origin) {
-      console.error("Chýbajúca konfigurácia ENV premenných");
-      return res.status(500).json('Nesprávna konfigurácia servera');
+    if (oauthProvider === 'gitlab') {
+      options.client_id = process.env.OAUTH_CLIENT_ID
+      options.client_secret = process.env.OAUTH_CLIENT_SECRET
+      options.grant_type = 'authorization_code'
+      options.redirect_uri = process.env.REDIRECT_URL
     }
 
-    try {
-      const result = await oauth2.getToken({code, redirect_uri});
-      const token = result.token.access_token;
-
-      console.log("Token od GitHubu: ", token);
-
-      // presný redirect s hash "#" na /success stránku
-      res.redirect(`${origin}/success#access_token=${token}&provider=${provider}`);
-
-    } catch (e) {
-      console.error("Error v OAuth (chyba pri získavaní tokenu):", e);
-      res.status(500).json('Authentifikácia zlyhala.');
-    }
-  });
-
-  return router;
-};
+    oauth2.getToken(options)
+      .then(result => {
+        const token = oauth2.createToken(result)
+        content = {
+          token: token.token.token.access_token,
+          provider: oauthProvider
+        }
+        return { message: 'success', content }
+      })
+      .catch(error => {
+        console.error('Access Token Error', error.message)
+        return { message: 'error', content: JSON.stringify(error) }
+      })
+      .then(result => {
+        const script = generateScript(oauthProvider, result.message, result.content)
+        return res.send(script)
+      })
+  }
+  return callbackMiddleWare
+}
