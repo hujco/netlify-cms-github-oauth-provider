@@ -21,19 +21,19 @@ const config = {
 const oauth2 = new simpleOauthModule.AuthorizationCode(config);
 const app = express();
 
-function indexMiddleware(req, res) {
+// ✅ Pripojenie express routerov
+app.use('/auth', authMiddleWareInit(oauth2));
+app.use('/callback', callbackMiddleWareInit(oauth2, oauthProvider));
+app.use('/success', (req, res) => {
+  res.send('✅ Authorization complete!');
+});
+
+// ✅ Hlavná stránka (napr. testovanie na /)
+app.use('/', (req, res) => {
   res.send(`Hello<br>
     <a href="/auth" target="${loginAuthTarget}">
       Log in with ${oauthProvider.toUpperCase()}
     </a>`);
-}
-
-// Pridanie všetkých route handlerov
-app.get('/', indexMiddleware);
-app.get('/auth', authMiddleWareInit(oauth2));
-app.get('/callback', callbackMiddleWareInit(oauth2, oauthProvider));
-app.get('/success', (req, res) => {
-  res.send('');
 });
 
 const port = process.env.PORT || 3000;
